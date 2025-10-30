@@ -18,6 +18,7 @@ import { promises as fs } from 'fs';
 import axios from 'axios';
 import play from 'play-dl';
 import { Downloader } from '@tobyg74/tiktok-api-dl';
+import http from 'http';
 
 const client = createClient();
 const DATA_FILE = './control_panel_data.json';
@@ -567,6 +568,7 @@ async function startBot() {
   try {
     await client.login(config.token);
     await registerCommands();
+    startHealthServer();
   } catch (error) {
     console.error('❌ فشل تشغيل البوت:', error);
     console.log('\n⚠️ تأكد من:');
@@ -575,6 +577,30 @@ async function startBot() {
     console.log('3. أن CLIENT_ID موجود ومطابق لمعرف البوت');
     process.exit(1);
   }
+}
+
+function startHealthServer() {
+  const PORT = process.env.PORT || 3000;
+  
+  const server = http.createServer((req, res) => {
+    if (req.url === '/health' || req.url === '/') {
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({
+        status: 'online',
+        bot: client.user?.tag || 'Bot',
+        servers: client.guilds.cache.size,
+        uptime: Math.floor(client.uptime / 1000),
+        timestamp: new Date().toISOString()
+      }));
+    } else {
+      res.writeHead(404, { 'Content-Type': 'text/plain' });
+      res.end('Not Found');
+    }
+  });
+
+  server.listen(PORT, '0.0.0.0', () => {
+    console.log(`🌐 Health server running on port ${PORT}`);
+  });
 }
 
 startBot();
